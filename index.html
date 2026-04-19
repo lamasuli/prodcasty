@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Podcasty — YouTube AI Analysis</title>
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="site-header">
+    <div class="logo-mark">
+      <!-- Simple waveform icon -->
+      <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="2"  y="12" width="4" height="8"  rx="2" fill="currentColor"/>
+        <rect x="9"  y="7"  width="4" height="18" rx="2" fill="currentColor"/>
+        <rect x="16" y="4"  width="4" height="24" rx="2" fill="currentColor"/>
+        <rect x="23" y="9"  width="4" height="14" rx="2" fill="currentColor"/>
+      </svg>
+    </div>
+    <span class="site-name">Podcasty</span>
+    <span class="site-tagline">AI-Powered YouTube Analysis</span>
+  </header>
+
+  <!-- ===== MAIN ===== -->
+  <main class="container">
+
+    <!-- Hero -->
+    <section class="hero">
+      <h1 class="hero-title">Understand any video<br /><em>in seconds.</em></h1>
+      <p class="hero-sub">Paste a YouTube link. Get the core ideas distilled into sharp, digestible points — powered by Claude AI.</p>
+    </section>
+
+    <!-- Search Card -->
+    <section class="card search-card" id="searchCard">
+      <label class="field-label" for="urlInput">YouTube Video URL</label>
+      <div class="input-row">
+        <!-- Event 1: keyup — pressing Enter triggers analysis -->
+        <input
+          type="text"
+          id="urlInput"
+          class="url-input"
+          placeholder="https://www.youtube.com/watch?v=..."
+          autocomplete="off"
+        />
+        <!-- Event 2: click — Analyze button -->
+        <button class="btn btn-primary" id="analyzeBtn">
+          <span class="btn-text">Analyze</span>
+          <span class="btn-icon">→</span>
+        </button>
+      </div>
+
+      <!-- Options row -->
+      <div class="options-row">
+        <span class="options-label">Include:</span>
+        <label class="chip" id="chipConcepts">
+          <input type="checkbox" name="concepts" checked /> Key Concepts
+        </label>
+        <label class="chip" id="chipSummary">
+          <input type="checkbox" name="summary" checked /> Short Summary
+        </label>
+        <label class="chip" id="chipQuiz">
+          <input type="checkbox" name="quiz" /> Quiz Questions
+        </label>
+      </div>
+
+      <!-- Error message (hidden by default) -->
+      <div class="error-box" id="errorBox" role="alert" aria-live="polite">
+        <span class="error-icon">⚠</span>
+        <span id="errorMsg">Something went wrong. Please try again.</span>
+      </div>
+    </section>
+
+    <!-- Loading indicator (hidden by default) -->
+    <section class="loading-section" id="loadingSection" aria-live="polite">
+      <div class="loading-bars">
+        <span></span><span></span><span></span><span></span><span></span>
+      </div>
+      <p class="loading-text" id="loadingText">Fetching video info…</p>
+    </section>
+
+    <!-- Results area (hidden until data arrives) -->
+    <section class="results-section" id="resultsSection">
+
+      <!-- Video meta card -->
+      <div class="card meta-card" id="metaCard">
+        <div class="meta-thumb-wrap">
+          <img class="meta-thumb" id="metaThumb" src="" alt="Video thumbnail" />
+          <span class="meta-duration" id="metaDuration"></span>
+        </div>
+        <div class="meta-info">
+          <h2 class="meta-title" id="metaTitle"></h2>
+          <p class="meta-channel" id="metaChannel"></p>
+          <div class="meta-stats">
+            <span class="stat-pill" id="statViews"></span>
+            <span class="stat-pill" id="statLikes"></span>
+            <span class="stat-pill" id="statPublished"></span>
+          </div>
+          <div class="meta-tags" id="metaTags"></div>
+        </div>
+      </div>
+
+      <!-- AI Analysis card -->
+      <div class="card analysis-card" id="analysisCard">
+        <div class="analysis-header">
+          <span class="analysis-badge">AI Analysis</span>
+          <!-- Event 3: dblclick on a point to copy it -->
+          <span class="copy-hint">Double-click any point to copy it</span>
+        </div>
+
+        <!-- Summary block -->
+        <div id="summaryBlock" class="summary-block">
+          <h3 class="block-label">Summary</h3>
+          <p class="summary-text" id="summaryText"></p>
+        </div>
+
+        <!-- Key concepts list -->
+        <div id="conceptsBlock" class="concepts-block">
+          <h3 class="block-label">Key Concepts</h3>
+          <ul class="points-list" id="pointsList"></ul>
+        </div>
+
+        <!-- Quiz block -->
+        <div id="quizBlock" class="quiz-block" style="display:none">
+          <h3 class="block-label">Quiz Yourself</h3>
+          <ul class="quiz-list" id="quizList"></ul>
+        </div>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="action-row">
+        <button class="btn btn-outline" id="newAnalysisBtn">← New Analysis</button>
+        <button class="btn btn-danger" id="clearBtn">Clear Results</button>
+      </div>
+
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <p>Podcasty · Built with YouTube Data API v3 &amp; Claude AI · CCSW321 Assignment</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
