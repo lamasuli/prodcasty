@@ -4,7 +4,6 @@ const OPENROUTER_API_KEY = "sk-or-v1-bbcf1c5d827660ee37a90c47b7fce97c81e51a81cc9
 
 const YT_API_BASE = "https://www.googleapis.com/youtube/v3/videos";
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
-
 // ============================================================
 // DOM REFERENCES
 // ============================================================
@@ -34,6 +33,11 @@ const pointsList = document.getElementById("pointsList");
 const quizBlock = document.getElementById("quizBlock");
 const quizList = document.getElementById("quizList");
 
+// ✅ checkboxes (by name, not id)
+const optSummary  = document.querySelector('input[name="summary"]');
+const optConcepts = document.querySelector('input[name="concepts"]');
+const optQuiz     = document.querySelector('input[name="quiz"]');
+
 // ============================================================
 // EVENT LISTENERS
 // ============================================================
@@ -45,22 +49,36 @@ analyzeBtn.addEventListener("click", () => {
   runAnalysis(urlInput.value.trim());
 });
 
-urlInput.addEventListener("keyup", (e) => {
+urlInput.addEventListener("keyup", e => {
   if (e.key === "Enter") analyzeBtn.click();
 });
 
-clearBtn.addEventListener("click", clearResults);
-newAnalysisBtn.addEventListener("click", () => {
-  clearResults();
-  urlInput.value = "";
-  urlInput.focus();
-});
+// ✅ restart from scratch
+function clearResults() {
+  // اخفاء بلوكات التحليل
+  summaryBlock.style.display = "none";
+  conceptsBlock.style.display = "none";
+  quizBlock.style.display = "none";
+
+  // تفريغ المحتوى
+  summaryText.textContent = "";
+  pointsList.innerHTML = "";
+  quizList.innerHTML = "";
+  metaTags.innerHTML = "";
+
+  // اخفاء قسم النتائج
+  resultsSection.classList.remove("visible");
+
+  // اخفاء الأخطاء واللودينق
+  hideError();
+  hideLoading();
+}
+newAnalysisBtn.addEventListener("click", () => window.location.reload());
 
 // ============================================================
 // UTILITIES
 // ============================================================
 function extractVideoId(input) {
-  if (/^[\w-]{11}$/.test(input)) return input;
   try {
     const url = new URL(input);
     if (url.searchParams.get("v")) return url.searchParams.get("v");
@@ -81,11 +99,16 @@ function formatDuration(iso) {
   const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
   if (!m) return "";
   const h = m[1] || 0, min = m[2] || 0, s = m[3] || 0;
-  return h ? `${h}:${String(min).padStart(2,"0")}:${String(s).padStart(2,"0")}` : `${min}:${String(s).padStart(2,"0")}`;
+  return h
+    ? `${h}:${String(min).padStart(2,"0")}:${String(s).padStart(2,"0")}`
+    : `${min}:${String(s).padStart(2,"0")}`;
 }
 
 function formatDate(iso) {
-  return new Date(iso).toLocaleDateString("en-US", { month: "short", year: "numeric" });
+  return new Date(iso).toLocaleDateString("en-US", {
+    month: "short",
+    year: "numeric"
+  });
 }
 
 // ============================================================
@@ -111,15 +134,6 @@ function hideLoading() {
   resultsSection.classList.add("visible");
 }
 
-function clearResults() {
-  pointsList.innerHTML = "";
-  quizList.innerHTML = "";
-  metaTags.innerHTML = "";
-  resultsSection.classList.remove("visible");
-  hideError();
-  hideLoading();
-}
-
 // ============================================================
 // STEP 1 — YouTube API
 // ============================================================
@@ -132,7 +146,8 @@ async function fetchYouTubeData(videoId) {
 
   const res = await fetch(`${YT_API_BASE}?${params}`);
   const data = await res.json();
-  if (!data.items || !data.items.length) throw new Error("Video not found.");
+
+  if (!data.items?.length) throw new Error("Video not found.");
 
   const v = data.items[0];
   return {
@@ -149,23 +164,49 @@ async function fetchYouTubeData(videoId) {
 }
 
 // ============================================================
-// STEP 2 — OpenRouter AI Analysis
+// STEP 2 — AI ANALYSIS (SUMMARY + INSIGHTS + QUIZ)
 // ============================================================
-async function fetchAIAnalysis(video) {
+async function fetchAIAnalysis(video, options) {
+
+  const sections = [];
+  if (options.summary) sections.push("summary");
+  if (options.insights) sections.push("insights");
+  if (options.quiz) sections.push("quiz");
+
   const prompt = `
-Analyze the following YouTube video and return ONLY valid JSON.
+You are analyzing a long YouTube podcast.
+
+Return ONLY valid JSON.
+Include ONLY these sections: ${sections.join(", ")}
+
+Rules:
+- Summary: 3 paragraphs, feels like watching the full podcast.
+- Insights: practical, actionable, non-generic.
+- Quiz: test understanding (why / scenario-based), not memorization.
+
+JSON format:
+{
+  "summary": "Detailed summary",
+  "insights": [
+    {
+      "title": "Insight title",
+      "why": "Why this matters",
+      "when": "When to apply it",
+      "example": "Concrete example"
+    }
+  ],
+  "quiz": [
+    {
+      "question": "Scenario or why question?",
+      "answer": "Explanation-based answer"
+    }
+  ]
+}
 
 Title: ${video.title}
 Description:
 ${video.description.slice(0, 3000)}
-
-Return this exact JSON structure:
-{
-  "summary": "Short summary",
-  "concepts": ["Concept 1", "Concept 2", "Concept 3"],
-  "quiz": [{"question":"Q?","answer":"A"}]
-}
-  `.trim();
+`.trim();
 
   const res = await fetch(OPENROUTER_URL, {
     method: "POST",
@@ -173,39 +214,40 @@ Return this exact JSON structure:
       "Content-Type": "application/json",
       "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
       "HTTP-Referer": "http://localhost",
-      "X-Title": "Podcasty CCSW321"
+      "X-Title": "Podcasty"
     },
     body: JSON.stringify({
       model: "openai/gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.3,
-      max_tokens: 500
+      max_tokens: 900,
+      response_format: { type: "json_object" }
     })
   });
 
   const data = await res.json();
+  if (!data.choices?.length) throw new Error("AI returned no result.");
 
-  let rawText = data.choices[0].message.content.trim();
-  rawText = rawText.replace(/```json/gi, "").replace(/```/g, "").trim();
+  const raw = data.choices[0].message.content;
 
-  const start = rawText.indexOf("{");
-  const end = rawText.lastIndexOf("}");
-  if (start === -1 || end === -1) throw new Error("AI response is not valid JSON.");
-
-  return JSON.parse(rawText.slice(start, end + 1));
+  try {
+    return JSON.parse(raw.replace(/```json|```/g, "").trim());
+  } catch {
+    console.error("Invalid AI JSON:", raw);
+    throw new Error("AI response was not valid JSON.");
+  }
 }
 
 // ============================================================
-// STEP 3 — Render video metadata
+// STEP 3 — RENDER META
 // ============================================================
 function renderMeta(video) {
   metaThumb.src = video.thumbnail;
-  metaThumb.alt = video.title;
   metaDuration.textContent = formatDuration(video.duration);
   metaTitle.textContent = video.title;
   metaChannel.textContent = video.channel;
-  statViews.textContent = `👁 ${formatNumber(video.views)} views`;
-  statLikes.textContent = `♥ ${formatNumber(video.likes)} likes`;
+  statViews.textContent = `👁 ${formatNumber(video.views)}`;
+  statLikes.textContent = `♥ ${formatNumber(video.likes)}`;
   statPublished.textContent = `📅 ${formatDate(video.published)}`;
 
   metaTags.innerHTML = "";
@@ -218,59 +260,97 @@ function renderMeta(video) {
 }
 
 // ============================================================
-// STEP 4 — Render AI analysis
+// STEP 4 — RENDER ANALYSIS (CARDS + QUIZ)
 // ============================================================
-function renderAnalysis(analysis) {
-  summaryText.textContent = analysis.summary || "";
-  summaryBlock.style.display = analysis.summary ? "block" : "none";
+function renderAnalysis(analysis, options) {
 
+  // ✅ Summary
+  summaryBlock.style.display = options.summary ? "block" : "none";
+  summaryText.textContent = analysis.summary || "";
+
+  // ✅ Insights → Cards
+  conceptsBlock.style.display = options.insights ? "block" : "none";
   pointsList.innerHTML = "";
-  if (Array.isArray(analysis.concepts)) {
-    analysis.concepts.forEach((c, i) => {
+
+  if (Array.isArray(analysis.insights)) {
+    analysis.insights.forEach(insight => {
       const li = document.createElement("li");
-      li.textContent = `${i + 1}. ${c}`;
+      li.className = "insight-card";
+      li.innerHTML = `
+        <h4>${insight.title}</h4>
+        <p><strong>Why it matters:</strong> ${insight.why}</p>
+        <p><strong>When to use:</strong> ${insight.when}</p>
+        <p><strong>Example:</strong> ${insight.example}</p>
+      `;
       pointsList.appendChild(li);
     });
-    conceptsBlock.style.display = "block";
   }
 
+  // ✅ Quiz (thinking-based)
+  quizBlock.style.display = options.quiz ? "block" : "none";
   quizList.innerHTML = "";
-  if (Array.isArray(analysis.quiz) && analysis.quiz.length) {
+
+  if (Array.isArray(analysis.quiz)) {
     analysis.quiz.forEach((q, i) => {
       const li = document.createElement("li");
-      li.innerHTML = `<strong>Q${i + 1}:</strong> ${q.question}<br><em>${q.answer}</em>`;
+      li.className = "quiz-card";
+      li.innerHTML = `
+        <p><strong>Q${i + 1}:</strong> ${q.question}</p>
+        <details>
+          <summary>Show answer</summary>
+          <p class="quiz-answer">${q.answer}</p>
+        </details>
+      `;
       quizList.appendChild(li);
     });
-    quizBlock.style.display = "block";
   }
+}
+
+// ============================================================
+// REVEAL ANIMATIONS
+// ============================================================
+function revealSections() {
+  document
+    .querySelectorAll(".summary-block, .concepts-block, .quiz-block")
+    .forEach((el, i) => {
+      el.classList.remove("visible");
+      el.classList.add("reveal");
+      setTimeout(() => el.classList.add("visible"), i * 200);
+    });
 }
 
 // ============================================================
 // MAIN PIPELINE
 // ============================================================
 async function runAnalysis(url) {
-  clearResults();
+
+  hideError();
   const id = extractVideoId(url);
   if (!id) return showError("Invalid YouTube URL.");
+
+  const options = {
+    summary: optSummary.checked,
+    insights: optConcepts.checked,
+    quiz: optQuiz.checked
+  };
 
   try {
     showLoading("Fetching video data…");
     const video = await fetchYouTubeData(id);
 
     showLoading("Analyzing with AI…");
-    const analysis = await fetchAIAnalysis(video);
+    const analysis = await fetchAIAnalysis(video, options);
 
     renderMeta(video);
-    renderAnalysis(analysis);
+    renderAnalysis(analysis, options);
+    revealSections();
+
     hideLoading();
-    
-/* ✅ Auto-scroll to results */
-resultsSection.scrollIntoView({
-  behavior: "smooth",
-  block: "start"
-});
+    resultsSection.scrollIntoView({ behavior: "smooth" });
 
   } catch (err) {
+    hideLoading();
     showError(err.message);
   }
 }
+``

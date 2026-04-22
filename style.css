@@ -10,7 +10,7 @@
   --bg-card2:   #1f1f25;
   --border:     rgba(255,255,255,0.08);
   --border-hover: rgba(255,255,255,0.18);
-  --accent:     #112e8e;        /* amber */
+  --accent:     #05058a;        /* amber */
   --accent2:    #e04b4b;        /* red for danger */
   --text-1:     #f0eeea;
   --text-2:     #9e9e9e;
@@ -38,7 +38,100 @@ body {
   line-height: 1.65;
   min-height: 100vh;
 }
+/* ===============================
+   Insight Cards
+================================ */
+.insight-card {
+  background: linear-gradient(180deg, #0f172a, #020617);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin-bottom: 14px;
+  transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+  cursor: default;
+}
 
+.insight-card h4 {
+  margin: 0 0 10px;
+  font-family: "Syne", sans-serif;
+  font-size: 1rem;
+  color: #e5e7eb;
+}
+
+.insight-card p {
+  margin: 6px 0;
+  font-size: .9rem;
+  line-height: 1.55;
+  color: #cbd5f5;
+}
+
+.insight-card strong {
+  color: #93c5fd;
+  font-weight: 600;
+}
+
+.insight-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 30px rgba(0,0,0,.35);
+  border-color: rgba(147,197,253,.35);
+}
+/* ===============================
+   Reveal Animations
+================================ */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity .6s ease, transform .6s ease;
+}
+/* ===============================
+   Quiz Cards
+================================ */
+.quiz-card {
+  background: #020617;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+}
+
+.quiz-card p {
+  margin: 0 0 10px;
+  font-size: 0.95rem;
+  color: #e5e7eb;
+  line-height: 1.5;
+}
+
+.quiz-card details summary {
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: #60a5fa;
+  user-select: none;
+}
+
+.quiz-card details summary:hover {
+  text-decoration: underline;
+}
+
+.quiz-answer {
+  margin-top: 10px;
+  font-size: 0.85rem;
+  color: #cbd5f5;
+  line-height: 1.6;
+}
+
+.block-label {
+  font-family: "Syne", sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: #f8fafc;
+}
+
+
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
 /* ---------- Layout ---------- */
 .container {
   max-width: 720px;
